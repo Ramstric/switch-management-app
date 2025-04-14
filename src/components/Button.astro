@@ -1,0 +1,63 @@
+---
+import "../styles/global.css";
+
+const { innerHtml, bgcolor, labelcolor, type, w, h, ID, link} = Astro.props;
+
+const buttonType = `${type}`;
+---
+
+<button set:html={innerHtml} class={buttonType} id={ID} type="submit" disabled></button>
+
+<!-- ------ Local style ------ -->
+
+<style define:vars={{ bgcolor: bgcolor, labelcolor: labelcolor, w: w, h: h }}>
+    button:disabled {
+        background: var(--secondary);
+        color: var(--labelcolor);
+        cursor: not-allowed;
+    }
+
+    button:disabled:hover {
+        background: var(--secondary);
+        color: var(--labelcolor);
+        box-shadow: none;
+        filter: none;
+        cursor: not-allowed;
+    }
+
+
+    button {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+
+        width: fit-content;
+        height: fit-content;
+        padding: 5px 12px;
+
+        background: var(--bgcolor);
+        color: var(--labelcolor);
+
+        border: none;
+        border-radius: 25px;
+        
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.25s ease;
+    }
+
+    .fixed-w {
+        width: var(--w);
+    }
+
+    .invert:hover {
+        background: var(--labelcolor);
+        filter: drop-shadow(0 0 0.5rem var(--bgcolor));
+        color: var(--bgcolor);
+    }
+
+    .normal:hover {
+        box-shadow: 0px 0px 10px 2px rgb(0, 0, 0);
+    }
+</style>

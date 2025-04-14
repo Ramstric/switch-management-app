@@ -1,0 +1,191 @@
+---
+import "../styles/global.css";
+
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+---
+
+<Layout>
+  <div class="login-container">
+    <h2>Administración de conexiones</h2>
+    <form id="loginForm" method="POST">
+      <div class="credentials__item">
+        <label for="username">Usuario</label>
+        <input type="text" name="username" />
+      </div>
+      <div class="credentials__item">
+        <label for="password">Contraseña</label>
+        <input type="password" name="password" />
+      </div>
+      <Button
+        ID="login-button"
+        innerHtml="Iniciar sesión"
+        bgcolor="var(--red)"
+        labelcolor="var(--primary)"
+        type="invert"
+      />
+      <div class="success-message">
+        <p>¡Inicio de sesión exitoso!</p>
+      </div>
+      <div class="error-message">
+        <p>Credenciales inválidas</p>
+      </div>
+    </form>
+  </div>
+</Layout>
+
+<style>
+  .login-container {
+    width: fit-content;
+    height: 100%;
+
+    gap: 50px;
+  }
+
+  h2 {
+    height: fit-content;
+
+    color: var(--primary);
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: fit-content;
+    height: fit-content;
+
+    gap: 30px;
+  }
+  .credentials__item {
+    flex-direction: row;
+    justify-content: flex-end;
+
+    gap: 10px;
+  }
+  .credentials__item label {
+    width: fit-content;
+
+    color: var(--primary);
+    font-size: var(--p-desktop);
+    font-weight: 350;
+  }
+  .credentials__item input {
+    width: 125px;
+    padding: 0 5px;
+
+    background-color: var(--secondary);
+
+    border: none;
+    border-radius: 5px;
+
+    color: var(--primary);
+    font-size: var(--p-desktop);
+    font-weight: 350;
+  }
+  .credentials__item input:focus {
+    background-color: var(--primary);
+
+    outline: none;
+
+    color: var(--background);
+  }
+
+  .success-message, .error-message {
+    display: none;
+    position: absolute;
+
+    width: fit-content;
+    height: fit-content;
+
+    padding: 5px;
+
+    opacity: 1;
+
+    transform: translateY(100px);
+    transition: all 0.25s ease-in-out;
+
+    @starting-style{
+      opacity: 0;
+
+      transform: translateY(-10px);
+    }
+  }
+
+  .success-message {
+    background-color: #253127;
+    color: var(--green);
+  }
+
+  .error-message {
+    background-color: #312525;
+    color: var(--red);
+  }
+
+</style>
+
+<script>
+  async function login(username: string, password: string) {
+    const successMessage = document.querySelector(".success-message") as HTMLDivElement;
+    const errorMessage = document.querySelector(".error-message") as HTMLDivElement;
+
+    const response = await fetch("switch-management-app/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password,
+        database: "administracion_red",
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      successMessage.style.display = "block";
+      setTimeout(() => {
+        successMessage.style.display = "none";
+        window.location.href = "switch-management-app/dashboard";
+      }, 3000);
+      
+    } else {
+      errorMessage.style.display = "block";
+      setTimeout(() => {
+        errorMessage.style.display = "none";
+      }, 3000);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const loginForm = document.getElementById("loginForm") as HTMLFormElement;
+    const loginButton = document.getElementById("login-button") as HTMLButtonElement;
+
+    loginForm.username.addEventListener("input", function () {
+      if (loginForm.username.value.trim() !== "" && loginForm.password.value.trim() !== "") {
+        loginButton.removeAttribute("disabled");
+      } else {
+        loginButton.setAttribute("disabled", "true");
+      }
+    });
+
+    loginForm.password.addEventListener("input", function () {
+      if (loginForm.username.value.trim() !== "" && loginForm.password.value.trim() !== "") {
+        loginButton.removeAttribute("disabled");
+      } else {
+        loginButton.setAttribute("disabled", "true");
+      }
+    });
+
+    loginButton.addEventListener("click", function (event) {
+      event.preventDefault(); // Prevent form submission
+
+      const username = loginForm.username.value;
+      const password = loginForm.password.value;
+
+      login(username, password);
+    });
+  });
+</script>
