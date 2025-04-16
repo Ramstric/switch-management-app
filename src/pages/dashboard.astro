@@ -44,6 +44,13 @@ import MainLayout from "../layouts/mainLayout.astro";
     height: fit-content;
     table-layout: fixed;
   }
+  thead > tr :nth-child(1) {width: 15%;}
+  thead > tr :nth-child(2) {width: 25%;}
+  thead > tr :nth-child(3) {width: 20%;}
+  thead > tr :nth-child(4) {width: 8%;}
+  thead > tr :nth-child(5) {width: 8%;}
+  thead > tr :nth-child(6) {width: 10%;}
+  thead > tr :nth-child(7) {width: 14%;}
 
   th {
     font-weight: 600;
@@ -52,6 +59,7 @@ import MainLayout from "../layouts/mainLayout.astro";
 
   td {
     font-weight: 300;
+    text-align: center;
   }
 
   .desconocido{
@@ -86,8 +94,8 @@ import MainLayout from "../layouts/mainLayout.astro";
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          username: 'placeholder',
-          password: 'placeholder',
+          username: 'root',
+          password: 'root',
           database: 'administracion_red',
           table: 'dispositivos_red'
         })
@@ -112,7 +120,7 @@ import MainLayout from "../layouts/mainLayout.astro";
     data.forEach(entrada => {
       const row = document.createElement('tr');
       
-      if (entrada.tipo === 'unknown') {
+      if (entrada.tipo === 'desconocido') {
         row.className = 'desconocido';
       }
 
@@ -121,7 +129,7 @@ import MainLayout from "../layouts/mainLayout.astro";
         <td>${entrada.dispositivo}</td>
         <td>${entrada.mac}</td>
         <td>${entrada.switch}</td>
-        <td>${entrada.port}</td>
+        <td>${entrada.puerto}</td>
         <td>${entrada.hora}</td>
         <td>${entrada.fecha.slice(0, 10)}</td>
       `;
@@ -129,8 +137,23 @@ import MainLayout from "../layouts/mainLayout.astro";
     });
   }
 
+  // Listen for the "click" event on the unknown devices
+  const tableBody = document.querySelector('#data-table tbody') as HTMLTableSectionElement;
+  tableBody.addEventListener('click', (event) => {
+    const target = event.target as HTMLTableCellElement;
+    const row = target.closest('tr');
+
+    if (row && row.classList.contains('desconocido')) {
+      const macAddress = row.cells[2].textContent;
+      alert(`MAC Address: ${macAddress}`);
+    }
+  });
+
   // Call fetchData when the page loads
-  document.addEventListener('DOMContentLoaded', fetchData);
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchData();
+
+  });
 
   // Call fetchData every 5 seconds
   setInterval(fetchData, 5000);

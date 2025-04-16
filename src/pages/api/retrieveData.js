@@ -1,7 +1,5 @@
 import mysql from 'mysql2/promise';
 
-// For a request at /api/retrieveData with a json body containing username, password, database, and table, this function will connect to the database and return the data from the specified table as a JSON response.
-
 export async function POST({ request }) {
 
     const { username, password, database, table } = await request.json();
