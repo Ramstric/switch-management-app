@@ -1,7 +1,12 @@
 ---
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+Astro.response.headers.set('Pragma', 'no-cache');
+Astro.response.headers.set('Expires', '0');
+
 import "../styles/global.css";
 
 import MainLayout from "../layouts/mainLayout.astro";
+import Button from "../components/Button.astro";
 ---
 
 <MainLayout>
@@ -23,10 +28,37 @@ import MainLayout from "../layouts/mainLayout.astro";
       </tbody>
     </table>
   </div>
+
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <h3>Bloquee o registre el dispositivo</h3>
+      <div class="name_device">
+        <label for="name">Dispositivo</label>
+        <input type="text" name="name" />
+      </div>
+      <div class="buttons">
+        <Button
+        ID="block-button"
+        innerHtml="Bloquear"
+        bgcolor="var(--red)"
+        labelcolor="var(--primary)"
+        type="invert"
+      />
+        <Button
+        ID="register-button"
+        innerHtml="Registrar"
+        bgcolor="var(--blue)"
+        labelcolor="var(--primary)"
+        type="invert"
+        disable
+      />
+      </div>
+    </div>
+  </div>
 </MainLayout>
 
 <style is:global>
-  h2 {
+  h2, h3 {
     height: fit-content;
     color: var(--primary);
   }
@@ -68,9 +100,7 @@ import MainLayout from "../layouts/mainLayout.astro";
 
     transition: all 0.25s ease;
 
-    td {
-      font-weight: 800;
-    }
+    td {font-weight: 800;};
   }
 
   .desconocido:hover {
@@ -80,12 +110,71 @@ import MainLayout from "../layouts/mainLayout.astro";
     cursor: pointer;
   }
 
+  .bloqueado {color: var(--red);}
+
+  .popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+
+  .popup-content {    
+    background-color: var(--background);
+    gap: 25px;
+    padding: 25px;
+    border-radius: 10px;
+    width: fit-content;
+    height: fit-content;
+  }
+
+  .name_device {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+  }
+  .name_device label {
+    width: fit-content;
+
+    color: var(--primary);
+    font-size: var(--p-desktop);
+    font-weight: 350;
+  }
+  .name_device input {
+    width: 125px;
+    padding: 0 5px;
+
+    background-color: var(--secondary);
+
+    border: none;
+    border-radius: 5px;
+
+    color: var(--primary);
+    font-size: var(--p-desktop);
+    font-weight: 350;
+  }
+  .name_device input:focus {
+    background-color: var(--primary);
+
+    outline: none;
+
+    color: var(--background);
+  }
+
+  .buttons {
+    flex-direction: row;
+    gap: 25px;
+  }
+
 </style>
 
 <script>
 
   // Fetch database data from the server at /api/retrieveData by passing username and password
-
   async function fetchData() {
     try {
       const response = await fetch('/api/retrieveData', {
@@ -106,10 +195,82 @@ import MainLayout from "../layouts/mainLayout.astro";
       }
 
       const data = await response.json();
+
+
       populateTable(data);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
+  }
+
+  // Register or block a device
+  async function updateDevice(nameInput: HTMLInputElement, macAddress: string, type: string) {
+    try {
+      const response = await fetch('/api/updateItem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: 'placeholder',
+          password: 'placeholder',
+          database: 'administracion_red',
+          table: 'dispositivos_red',
+          mac: macAddress,
+          name: nameInput.value.trim(),
+          type: type
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      await response.json()
+      .then( (data) => {
+          document.getElementById('popup')!.style.display = 'none';
+      });
+      
+    } catch (error) {
+      console.error('Error registering device:', error);
+      throw error; // Rethrow the error to be handled in the calling function
+    }
+  }
+
+  async function unkownDevicePopup(macAddress: string) {
+    const oldPopup = document.getElementById('popup') as HTMLDivElement;
+    const popupParent = oldPopup.parentElement as HTMLDivElement;
+
+    // Create copy of the popup element to avoid reusing the same element
+    const popup = oldPopup.cloneNode(true) as HTMLDivElement;
+    popupParent.appendChild(popup); // Append the clone to the parent
+    // Remove the original popup to avoid duplication
+    oldPopup.remove(); // Remove the original popup
+
+    popup.style.display = 'flex';
+
+    popup.addEventListener('click', (event) => {
+      if (event.target === popup) {
+        popup.style.display = 'none';
+      }
+    });
+
+
+    const blockButton = document.getElementById('block-button') as HTMLButtonElement;
+    const registerButton = document.getElementById('register-button') as HTMLButtonElement;
+    const nameInput = document.querySelector('.name_device input') as HTMLInputElement;
+
+
+    nameInput.addEventListener('input', () => {
+      if (nameInput.value.trim() !== '') {
+        registerButton.removeAttribute('disabled');
+      } else {
+        registerButton.setAttribute('disabled', 'true');
+      }
+    });
+
+    blockButton.addEventListener('click', updateDevice.bind(blockButton, nameInput, macAddress, 'bloqueado'));
+    registerButton.addEventListener('click', updateDevice.bind(registerButton, nameInput, macAddress, 'autorizado'));
   }
 
   // Populate the table with data
@@ -122,6 +283,11 @@ import MainLayout from "../layouts/mainLayout.astro";
       
       if (entrada.tipo === 'desconocido') {
         row.className = 'desconocido';
+        row.addEventListener('click', () => {
+          unkownDevicePopup(entrada.mac);
+        });
+      } else if (entrada.tipo === 'bloqueado') {
+        row.className = 'bloqueado';
       }
 
       row.innerHTML = `
@@ -137,20 +303,9 @@ import MainLayout from "../layouts/mainLayout.astro";
     });
   }
 
-  // Listen for the "click" event on the unknown devices
-  const tableBody = document.querySelector('#data-table tbody') as HTMLTableSectionElement;
-  tableBody.addEventListener('click', (event) => {
-    const target = event.target as HTMLTableCellElement;
-    const row = target.closest('tr');
-
-    if (row && row.classList.contains('desconocido')) {
-      const macAddress = row.cells[2].textContent;
-      alert(`MAC Address: ${macAddress}`);
-    }
-  });
-
   // Call fetchData when the page loads
   document.addEventListener('DOMContentLoaded', () => {
+
     fetchData();
 
   });

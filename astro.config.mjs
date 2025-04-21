@@ -8,7 +8,8 @@ export default defineConfig({
   site: 'https://ramstric.github.io',
   base: 'switch-management-app',
   output: 'server',
+
   adapter: node({
     mode: 'standalone'
-  })
+  }),
 })

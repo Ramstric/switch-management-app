@@ -1,12 +1,13 @@
 ---
 import "../styles/global.css";
 
-const { innerHtml, bgcolor, labelcolor, type, w, h, ID, link} = Astro.props;
+const { innerHtml, bgcolor, labelcolor, type, w, h, ID, link, disable = false} = Astro.props;
 
 const buttonType = `${type}`;
+// if disable is true, the button will be disabled
 ---
 
-<button set:html={innerHtml} class={buttonType} id={ID} type="submit" disabled></button>
+<button set:html={innerHtml} class={buttonType} id={ID} type="submit" disabled={disable || undefined}></button>
 
 <!-- ------ Local style ------ -->
 
