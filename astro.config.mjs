@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 
 import node from '@astrojs/node';
 
@@ -12,4 +12,30 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone'
   }),
+
+    env: {
+      schema: {
+        DATABASE_NAME: envField.string({
+          context: "client",
+          access: "public",
+        }),
+
+        TABLE_NAME: envField.string({
+          context: "client",
+          access: "public",
+        }),
+
+        TELNET_HOST: envField.string({
+          context: "client",
+          access: "public",
+        }),
+
+        TELNET_PORT: envField.string({
+          context: "client",
+          access: "public",
+        })
+
+      },
+    },
+  
 })

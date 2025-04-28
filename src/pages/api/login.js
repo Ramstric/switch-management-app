@@ -1,38 +1,45 @@
 import mysql from 'mysql2/promise';
-import { serialize } from 'cookie';
-// For a request at /api/login with a json body containing username and password, this function will connect to the database and return a success message if the connection is successful, or an error message if it fails.
 
-function generateAuthToken() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  }
+import { DATABASE_NAME } from "astro:env/client";
 
+// POST handler for validating credentials through MySQL connection
 export async function POST({request, cookies}) {
-    const { username, password, database } = await request.json();
+
+    const { username, password } = await request.json();
+
+    const connectionConfig = {
+        host:     'localhost',
+        user:     username,
+        password: password,
+        database: DATABASE_NAME
+    }
+
+    const cookiesConfig = {
+        httpOnly: true,
+        maxAge:   60 * 60,                              // For 3 minutes
+        sameSite: 'strict',
+        path:     '/',
+        secure:   process.env.NODE_ENV === 'production' // Set to true if using HTTPS
+    }
+
     try {
-        const connection = await mysql.createConnection({
-            host: 'localhost',
-            user: username,
-            password: password,
-            database: database
-        });
+        const connection = await mysql.createConnection(connectionConfig);
+
         await connection.end();
 
-        // Set a cookie with the auth token
-        const authToken = generateAuthToken();
+        const authToken = generateAuthToken();              // Set a cookie with the auth token
 
-        cookies.set('authToken', authToken, {
+        cookies.set('authToken', authToken, cookiesConfig); // Set the cookie with the auth token
+        cookies.set('username', username, cookiesConfig);   // Set the cookie with the username
+        cookies.set('password', password, cookiesConfig);   // Set the cookie with the password
 
-            httpOnly: true,
-            // For 3 minutes
-            maxAge: 60 * 60,
-            sameSite: 'strict',
-            path: '/',
-            secure: process.env.NODE_ENV === 'production' // Set to true if using HTTPS
-        });
-
-
-        return new Response(JSON.stringify({ message: 'Connection successful' }), { status: 200 });
+        return new Response(JSON.stringify({ message: 'Successful login' }), { status: 200 });
     } catch (error) {
-        return new Response(JSON.stringify({ message: 'Connection failed', error: error.message }), { status: 401    });
+        return new Response(JSON.stringify({ message: 'Credentials invalid', error: error.message }), { status: 401});
     }
+}
+
+// This function generates a random auth token for persistent login sessions
+function generateAuthToken() {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }

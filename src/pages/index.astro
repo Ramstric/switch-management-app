@@ -94,7 +94,8 @@ import Button from "../components/Button.astro";
     color: var(--background);
   }
 
-  .success-message, .error-message {
+  .success-message,
+  .error-message {
     display: none;
     position: absolute;
 
@@ -108,7 +109,7 @@ import Button from "../components/Button.astro";
     transform: translateY(100px);
     transition: all 0.25s ease-in-out;
 
-    @starting-style{
+    @starting-style {
       opacity: 0;
 
       transform: translateY(-10px);
@@ -124,36 +125,38 @@ import Button from "../components/Button.astro";
     background-color: #312525;
     color: var(--red);
   }
-
 </style>
 
 <script>
-  async function login(username: string, password: string) {
-    const successMessage = document.querySelector(".success-message") as HTMLDivElement;
-    const errorMessage = document.querySelector(".error-message") as HTMLDivElement;
+  const successMessage = document.querySelector(".success-message") as HTMLDivElement;
+  const errorMessage = document.querySelector(".error-message") as HTMLDivElement;
+  const loginForm = document.getElementById("loginForm") as HTMLFormElement;
+  const loginButton = document.getElementById("login-button") as HTMLButtonElement;
 
+
+  async function login(username: string, password: string) {
     const response = await fetch("/api/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: username,
-        password: password,
-        database: "administracion_red",
+        password: password
       }),
     });
 
     if (response.ok) {
+      // Successful login
       const data = await response.json();
       successMessage.style.display = "block";
+
       setTimeout(() => {
         successMessage.style.display = "none";
         window.location.href = "/switch-management-app/dashboard";
       }, 3000);
-      
     } else {
+      // Invalid credentials
       errorMessage.style.display = "block";
+
       setTimeout(() => {
         errorMessage.style.display = "none";
       }, 3000);
@@ -161,9 +164,6 @@ import Button from "../components/Button.astro";
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    const loginForm = document.getElementById("loginForm") as HTMLFormElement;
-    const loginButton = document.getElementById("login-button") as HTMLButtonElement;
-
     loginForm.username.addEventListener("input", function () {
       if (loginForm.username.value.trim() !== "" && loginForm.password.value.trim() !== "") {
         loginButton.removeAttribute("disabled");
@@ -173,7 +173,8 @@ import Button from "../components/Button.astro";
     });
 
     loginForm.password.addEventListener("input", function () {
-      if (loginForm.username.value.trim() !== "" && loginForm.password.value.trim() !== "") {
+      if (loginForm.username.value.trim() !== "" && loginForm.password.value.trim() !== ""
+      ) {
         loginButton.removeAttribute("disabled");
       } else {
         loginButton.setAttribute("disabled", "true");
@@ -182,11 +183,8 @@ import Button from "../components/Button.astro";
 
     loginButton.addEventListener("click", function (event) {
       event.preventDefault(); // Prevent form submission
-
-      const username = loginForm.username.value;
-      const password = loginForm.password.value;
-
-      login(username, password);
+      login(loginForm.username.value, loginForm.password.value);
     });
   });
+
 </script>
