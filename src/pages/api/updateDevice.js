@@ -1,21 +1,11 @@
-import Telnet from 'telnet-client';
 import mysql from 'mysql2/promise';
 
-import { DATABASE_NAME, TABLE_NAME, TELNET_HOST, TELNET_PORT } from "astro:env/client";
+import { DATABASE_NAME, TABLE_NAME } from "astro:env/client";
 
 // POST handler for updating an item in the database
 export async function POST({ request, cookies }) {
 
     const { mac, name, type } = await request.json();
-
-    const telnetConnection = new Telnet();
-    const telnetParams = {
-        host:        TELNET_HOST,
-        port:        TELNET_PORT,
-        shellPrompt: 'IOU1#',
-        initialLFCR: true,
-        timeout:     1500,
-    };
     
     const mysqlParams = {
         host:     'localhost',
@@ -26,22 +16,7 @@ export async function POST({ request, cookies }) {
 
 
     try {
-        if (type === 'bloqueado') {
-            await telnetConnection.connect(telnetParams);
-            
-            // Router command to be executed to show ip interface brief
-            const routerCommand = `clear mac address-table dynamic ${mac}`; // Example command
-            
-            let response = await telnetConnection.send(routerCommand); // Send command and wait for response
-            
-            if (response.includes('Invalid input')) {
-                return new Response(JSON.stringify({ message: 'Invalid MAC address' }), { status: 400 });
-            }
-            
-            await telnetConnection.end();
-        }
-
-        const connection = await mysql.createConnection(connectionConfig);
+        const connection = await mysql.createConnection(mysqlParams);
         
         if (name.trim() === '') {
             await connection.query(`UPDATE ${TABLE_NAME} SET tipo = ? WHERE mac = ?`, [type, mac]);  // If no name is provided, keep the current name

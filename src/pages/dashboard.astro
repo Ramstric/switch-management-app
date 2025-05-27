@@ -7,16 +7,26 @@ import "../styles/global.css";
 
 import MainLayout from "../layouts/mainLayout.astro";
 import Button from "../components/Button.astro";
-
-import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
 ---
 
 <MainLayout>
-  <h2>Registro de datos</h2>
+  <div class="header">
+    <h2>Registro de dispositivos</h2>
+    <div id="notificacion-autorizados">
+      <h3>dispositivo autorizado activo</h3>
+    </div>
+    <div id="notificacion-desconocidos">
+      <h3>dispositivo desconocido activo</h3>
+    </div>
+    <div id="notificacion-bloqueados">
+      <h3>dispositivo bloqueado activo</h3>
+    </div>
+  </div>
   <div class="database-view">
     <table id="data-table">
       <thead>
         <tr>
+          <th>Estado</th>
           <th>Tipo</th>
           <th>Dispositivo</th>
           <th>Dirección MAC</th>
@@ -61,8 +71,8 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
 
 <style is:global>
   h2, h3 {
+    width: fit-content;
     height: fit-content;
-    color: var(--primary);
   }
 
   .database-view {
@@ -73,18 +83,50 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
     justify-content: flex-start;
   }
 
+  .header {
+    flex-direction: row;
+    justify-content: flex-start;
+    height: fit-content;
+    color: var(--primary);
+    gap: 50px;
+  }
+
+  #notificacion-autorizados, #notificacion-desconocidos, #notificacion-bloqueados {
+    display: none;
+    width: fit-content;
+    height: fit-content;
+    padding: 5px;
+    border-radius: 10px;
+  }
+
+  #notificacion-autorizados {
+    background-color: rgba(112, 250, 112, 0.1);
+    color: var(--green);
+  }
+
+  #notificacion-desconocidos {
+    background-color: rgba(255, 255, 0, 0.1);
+    color: var(--yellow);
+  }
+
+  #notificacion-bloqueados {
+    background-color: rgba(255, 0, 0, 0.1);
+    color: var(--red);
+  }
+
   table {
     border-collapse: collapse;
     height: fit-content;
     table-layout: fixed;
   }
-  thead > tr :nth-child(1) {width: 15%;}
-  thead > tr :nth-child(2) {width: 25%;}
-  thead > tr :nth-child(3) {width: 20%;}
-  thead > tr :nth-child(4) {width: 8%;}
+  thead > tr :nth-child(1) {width: 5%;}
+  thead > tr :nth-child(2) {width: 10%;}
+  thead > tr :nth-child(3) {width: 25%;}
+  thead > tr :nth-child(4) {width: 20%;}
   thead > tr :nth-child(5) {width: 8%;}
-  thead > tr :nth-child(6) {width: 10%;}
-  thead > tr :nth-child(7) {width: 14%;}
+  thead > tr :nth-child(6) {width: 8%;}
+  thead > tr :nth-child(7) {width: 10%;}
+  thead > tr :nth-child(8) {width: 14%;}
 
   th {
     font-weight: 600;
@@ -97,7 +139,7 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
   }
 
   .desconocido{
-    background-color: var(--red);
+    background-color: var(--orange);
     color: var(--primary);
 
     transition: all 0.25s ease;
@@ -114,6 +156,20 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
 
   .bloqueado {color: var(--red);}
 
+  .status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin: 0 auto;
+  }
+
+  .status-dot.online {background-color: var(--green);}
+  .bloqueado .status-dot.online {background-color: var(--red);}
+  .desconocido .status-dot.online {background-color: var(--yellow);}
+
+
   .popup {
     display: none;
     position: fixed;
@@ -121,6 +177,7 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
     left: 0;
     width: 100%;
     height: 100%;
+    color: var(--primary);
     background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(2px);
   }
@@ -187,13 +244,15 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
 
       const data = await response.json();
 
+      return data;
     } catch (error) {
       console.error('Error fetching telnet connection:', error);
+      return {data: {}}; // Return an empty object if there's an error
     }
   }
 
   // Fetch database data from the server at /api/retrieveData by passing username and password
-  async function fetchDatabase() {
+  async function fetchDatabase(telnetDevices: any = []) {
     try {
       const response = await fetch('/api/retrieveDatabase', {
         method: 'POST',
@@ -202,7 +261,7 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
       
       const data = await response.json();
       
-      populateTable(data);
+      populateTable(data, telnetDevices);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -268,21 +327,35 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
   }
 
   // Populate the table with data
-  function populateTable(data: any) {
+  function populateTable(data: any, telnetDevices: any[]) {
+    const authorizedNotification = document.querySelector('#notificacion-autorizados') as HTMLHeadingElement;
+    const unknownNotification = document.querySelector('#notificacion-desconocidos') as HTMLHeadingElement;
+    const blockedNotification = document.querySelector('#notificacion-bloqueados') as HTMLHeadingElement;
+    
+    let activeDevices = {autorizados: 0, desconocidos: 0, bloqueados: 0};
+
     const tableBody = document.querySelector('#data-table tbody') as HTMLTableSectionElement;
     tableBody.innerHTML = '';
 
     data.forEach((entrada: { tipo: string; mac: string; dispositivo: string; switch: number; puerto: number; hora: any; fecha: string | any[]; }) => {
       const row = document.createElement('tr');
       
+      const isOnline = telnetDevices.some((device) => device.mac === entrada.mac);
+
       if (entrada.tipo === 'desconocido') {
         row.className = 'desconocido';
         row.addEventListener('click', () => {unkownDevicePopup(entrada.mac);});
+        if (isOnline) {activeDevices.desconocidos++;}
       } else if (entrada.tipo === 'bloqueado') {
         row.className = 'bloqueado';
+        if (isOnline) {activeDevices.bloqueados++;}
+      } else {
+        if (isOnline) {activeDevices.autorizados++;}
       }
 
+
       row.innerHTML = `
+        <td>${isOnline ? '<span class="status-dot online"></span>' : ''}</td>
         <td>${entrada.tipo}</td>
         <td>${entrada.dispositivo}</td>
         <td>${entrada.mac}</td>
@@ -294,16 +367,36 @@ import {DATABASE_NAME, TABLE_NAME} from 'astro:env/client';
 
       tableBody.appendChild(row);
     });
+
+    // Update notifications
+    if (activeDevices.autorizados > 0) {
+      authorizedNotification.style.display = 'flex';
+    } else {
+      authorizedNotification.style.display = 'none';
+    }
+
+    if (activeDevices.desconocidos > 0) {
+      unknownNotification.style.display = 'flex';
+    } else {
+      unknownNotification.style.display = 'none';
+    }
+
+    if (activeDevices.bloqueados > 0) {
+      blockedNotification.style.display = 'flex';
+    } else {
+      blockedNotification.style.display = 'none';
+    }
   }
 
-  // Call fetchData when the page loads
-  document.addEventListener('DOMContentLoaded', () => {
-    fetchDatabase();
-    fetchTelnetDevices();
-  });
 
-  // Call fetchData every 5 seconds
-  setInterval(fetchDatabase, 5000);
-  setInterval(fetchTelnetDevices, 4000);
+  // Call fetchData when the page loads
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Refresh the data every 5 seconds
+    setInterval(async () => {
+    const telnetDevices = await fetchTelnetDevices();
+    fetchDatabase(telnetDevices.data);
+    }, 5000);
+
+  });
 
 </script>
